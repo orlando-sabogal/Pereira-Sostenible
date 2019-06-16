@@ -86,13 +86,15 @@ Viajes %<>% left_join(Modo)
 
 ##Archivos Geográficos
 
-en la carpeta */ZatsPereiraDosquebradas/* está el archivo gegráfico (formato ESRI shape) de la zona Urbana de Pereira y Dosquebradas que es donde los análisis de van a enfocar más adelante. Este arhivo fue construído a partir del archivo de [ZATs](https://github.com/orlando-sabogal/Encuesta-Matriz-OD-Pereira-2017/tree/master/BasesDeDatos/ZAT%20Shapefiles)
+en la carpeta */ZatsPereiraDosquebradas/* está el archivo gegráfico (formato ESRI shape) de las zonas de análisis de transporte (ZAT) y la zona Urbana de Pereira y Dosquebradas que es donde los análisis de van a enfocar más adelante. Este segundo arhivo fue construído a partir del archivo de [ZATs](https://github.com/orlando-sabogal/Encuesta-Matriz-OD-Pereira-2017/tree/master/BasesDeDatos/ZAT%20Shapefiles)
 
 ```{r}
+Zonas <- st_read("ZatsPereiraDosquebradas/ZAT_rev.shp")
+Zonas <- st_transform(Zonas, 4326)
+
 ZonasUrbanas <- st_read("ZatsPereiraDosquebradas/ZatsPereiraDosquebradas.shp")
 ZonasUrbanas <- st_transform(ZonasUrbanas, 4326)
 ```
-
 
 ###Calcular Estratos ZATs
 

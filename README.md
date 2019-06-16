@@ -6,4 +6,8 @@ El exceso de vehículos genera congestión y altos tiempos de viaje sin que la c
 
 Pereira y sus municipios vecinos (Dosquebradas, La Virginia, Santa Rosa y Cartago) forman un entorno metropolitano de no más de un millón de habitantes que en la última década se ha caracterizado por un alto crecimiento del parque automotor, problemas en el transporte público y una urbanización desordenada y desarticulada de las políticas de transporte. Pese a la construcción de la primera línea de cable aéreo y los esfuerzos por promover el uso de la bicicleta mediante la construcción de ciclocarriles segregados, parqueaderos y un sistema de bicicletas compartidas, mi opinión es que las ciudades mencionadas cada vez se hacen más dependientes del vehículo privado. 
 
+En el siguiente informe puede encontrar los resultados y los análisis que he realizado: [Movilidad Sostenible en Pereira y Dosquebradas](https://orlando-sabogal.github.io/Pereira-Sostenible/Exploraci%C3%B3n%20Inicial.nb.html)
+
+Y en el siguiente documento puede encontrar el código usado en los análisis y el paso a paso detallado de la forma en la que se llegaron a los resultados: [Código](https://orlando-sabogal.github.io/Pereira-Sostenible/Exploraci%C3%B3n%20Inicial.nb.html)
+
 
