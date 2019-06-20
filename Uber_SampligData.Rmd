@@ -1,0 +1,112 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(sf)
+library(tmap)
+```
+
+```{r}
+Viajes <- read.table("https://raw.githubusercontent.com/orlando-sabogal/Encuesta-Matriz-OD-Pereira-2017/master/BasesDeDatos/06_Viajes.txt", sep = ";", header = TRUE)
+
+Viajes %<>% mutate(FactorExpansion = str_replace_all( F_EXP, ",", ".")) %>% 
+  mutate(FactorExpansion = as.numeric(FactorExpansion))
+```
+
+```{r}
+Modo <- tibble(
+  M_PRINCIPAL = c( seq(1,12), seq(20,25) ,30),
+  Modo = c("Megabus Troncal", "Megabus Alimentador", 
+           "Bus Urbano", "Bus Intermunicipal", "Bus EscaleraChiva", "CamperoJeep", 
+           "Taxi", "Transporte Escolar", "Bus PrivadodeEmpresa", 
+           "Transporte Individual por APP", "Mototaxi", "Motocarro de PasajeroCarga",
+           "Bicicleta", "Bicicleta con Motor", 
+           "Moto Conductor", "Moto Pasajero",
+           "Vehiculo Privado Conductor", "Vehiculo Privado Pasajero",
+           "A pie"))
+```
+
+```{r}
+Viajes %<>% left_join(Modo) %>% 
+  filter(Modo %in% c("CamperoJeep", "Taxi", "Transporte Individual por APP", "Mototaxi", "Motocarro de PasajeroCarga", "Bicicleta con Motor", "Moto Conductor", "Moto Pasajero",
+           "Vehiculo Privado Conductor", "Vehiculo Privado Pasajero" ))
+```
+
+
+```{r}
+ZonasUrbanas <- st_read("ZatsPereiraDosquebradas/ZatsPereiraDosquebradas.shp")
+ZonasUrbanas <- st_transform(ZonasUrbanas, 4326)
+```
+
+```{r}
+ParesOD <- Viajes %>% group_by(ZAT_INI, ZAT_FIN) %>% 
+  summarise(ViajesEncuesta = n(), ViajesEsimados = sum(FactorExpansion, na.rm = TRUE))
+```
+
+```{r}
+ParesOD %<>% filter(ZAT_INI %in% ZonasUrbanas$ZONA) 
+ParesOD %<>% filter(ZAT_FIN %in% ZonasUrbanas$ZONA) 
+```
+
+En total la encuesta logra registrar `r dim(ParesOD)[1]` pares origenes-destino para la zona urbana que queremos analizar. Esto quiere decir que, si queremos usar 10 viajes aleatorios entre cada par OD, en total se necesitan `r dim(ParesOD)[1]*10L` consultas a la API de Uber. 
+
+
+##Algunas notas sobre los datos
+
+De los `r dim(ParesOD)[1]` es importante resaltar la siguiente información:
+
+- En total hay `r dim( ParesOD %>% filter(ViajesEncuesta == 1) )[1]` pares que en la encuesta solamente reportan **1** viaje.
+- En total hay `r dim( ParesOD %>% filter(ViajesEncuesta == 2) )[1]` pares que en la encuesta solamente reportan **1** viaje.
+- En total hay `r dim( ParesOD %>% filter(ViajesEncuesta > 10) )[1]` pares que en la encuesta reportan más de **10** viajes.
+
+```{r}
+ParesOD %>% group_by(ViajesEncuesta) %>% 
+  summarise(Total = n(), ViajesEstimados = sum(ViajesEsimados))
+```
+
+#Viajes Aleatorios para cada par OD
+
+```{r}
+SampleTrips <- data.frame(ZatOrigin=c(0),
+                          ZatDestination=(0),
+                          LongOrigin=c(0),
+                          LatOrigin=c(0),
+                          LongDestination=c(0),
+                          LatDestination=c(0))
+```
+
+```{r}
+for (i in 1:dim(NewPairs)[1]){
+  SSRef <- 20
+  SS <- 5000
+  SampleTripsOrigin <- st_sample(
+    Zones[which(Zones$Zona_Num_N==NewPairs$ZAT_ORIGEN[i]),],SS)
+  
+  SampleTripsDest <- st_sample(
+    Zones[which(Zones$Zona_Num_N==NewPairs$ZAT_DESTINO[i]),],SS)
+  
+  Temp <- data.frame(ZatOrigin=rep(NewPairs$ZAT_ORIGEN[i],SSRef),
+                     ZatDestination=rep(NewPairs$ZAT_DESTINO[i],SSRef),
+                     LongOrigin=st_coordinates(SampleTripsOrigin)[1:SSRef,1],
+                     LatOrigin=st_coordinates(SampleTripsOrigin)[1:SSRef,2],
+                     LongDestination=st_coordinates(SampleTripsDest)[1:SSRef,1],
+                     LatDestination=st_coordinates(SampleTripsDest)[1:SSRef,2])
+
+  SampleTrips <- rbind(SampleTrips,Temp)  
+}
+
+```
+
+
+```{r}
+# SampleTrips <- SampleTrips[c(-1),]
+
+setwd("UberData/SamplingData")
+getwd()
+# setwd("~/Dropbox/IDB Uber Bog/UberData_2019NEW/UberSamplingData")
+# write.table(SampleTrips,"SampleTripsUberPeak_2019NEW.csv",sep = ";",row.names = FALSE)
+```
