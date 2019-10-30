@@ -1,0 +1,66 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+setwd("UberData/SamplingData")
+
+SampleTrips <- read.table("ViajesMuestra_PICO.csv",sep=";",header = TRUE)
+SampleTrips <- cbind(data.frame(ID=seq(1:dim(SampleTrips)[1])),SampleTrips)
+```
+
+```{r}
+library(devtools)
+library(httr)
+library(ubeR)
+
+UBER_CLIENTID = "wbPlZ1OP0LSBBlSnexWwleE3gYsP3bDH" #This changes according to the APP
+UBER_CLIENTSECRET = "A6zE6DJStLF4Ev-AXsSRFRbErHC8uXOlaWqf-Xdj" #This changes according to the APP
+
+uber_oauth(UBER_CLIENTID, UBER_CLIENTSECRET, FALSE)
+
+uber_estimate_price(start_latitude = 4.819370, start_longitude = -75.692836,
+                    end_latitude = 4.795999, end_longitude = -75.690948)
+Test <- uber_estimate_price(start_latitude = 4.819370, start_longitude = -75.692836,
+                    end_latitude = 4.795999, end_longitude = -75.690948)
+```
+
+```{r}
+names(Test)
+```
+
+```{r}
+Temp <- rep(0,dim(SampleTrips)[1]*dim(Test)[2])
+dim(Temp) <- c(dim(SampleTrips)[1],dim(Test)[2])
+Temp <- as.data.frame(Temp)
+names(Temp) <- names(Test)
+dim(Temp)
+Temp <- Temp[1,]
+
+ResultQuery <- cbind(SampleTrips[1,],Temp)
+
+ResultQuery$Time <- Sys.time()
+TempTest <- ResultQuery
+```
+
+```{r}
+for (i in 9000:9000){
+  
+  RandomTrip <- i
+  RealTime <- Sys.time() 
+  TempTrip <- uber_estimate_price(
+    start_latitude = SampleTrips$LatOrigin[RandomTrip], 
+    start_longitude = SampleTrips$LongOrigin[RandomTrip],
+    end_latitude = SampleTrips$LatDestination[RandomTrip], 
+    end_longitude = SampleTrips$LongDestination[RandomTrip])
+  
+  Temp <- TempTest
+  Temp[1:dim(TempTrip)[1],] <- Temp[1,]
+  Temp[,1:7] <- SampleTrips[RandomTrip,]
+  Temp[,8:18] <- TempTrip
+  Temp$Time <- RealTime
+  
+  ResultQuery <- rbind(ResultQuery,Temp)
+}
+```

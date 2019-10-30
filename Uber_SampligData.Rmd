@@ -36,6 +36,16 @@ Viajes %<>% left_join(Modo) %>%
            "Vehiculo Privado Conductor", "Vehiculo Privado Pasajero" ))
 ```
 
+```{r}
+Viajes %<>% mutate(Hour = MIN_INICIO/60) %>% 
+  mutate(HourRound = floor(Hour)) %>% 
+  mutate(HourFraction = Hour - HourRound)
+
+Viajes %<>% mutate(HourMedia = if_else(HourFraction<0.5,0,0.5)) %>% 
+  mutate(Hour = HourRound + HourMedia) %>% 
+  select(-HourRound, -HourFraction, -HourMedia)
+```
+
 
 ```{r}
 ZonasUrbanas <- st_read("ZatsPereiraDosquebradas/ZatsPereiraDosquebradas.shp")
@@ -70,8 +80,67 @@ ParesOD %>% group_by(ViajesEncuesta) %>%
 
 #Viajes Aleatorios para cada par OD
 
+##Viajes Hora Pico
+
 ```{r}
-SampleTrips <- data.frame(ZatOrigin=c(0),
+ViajesPico <- Viajes %>% 
+  filter(Hour %in% c(seq(6,8,0.5), 11.5, 12, 12.5, 13.5, 14, 17.5, 18, 18.30))
+
+ParesOD_PICO <- ViajesPico %>% group_by(ZAT_INI, ZAT_FIN) %>% 
+  summarise(ViajesEncuesta = n(), ViajesEsimados = sum(FactorExpansion, na.rm = TRUE))
+
+ParesOD_PICO %<>% filter(ZAT_INI %in% ZonasUrbanas$ZONA) 
+ParesOD_PICO %<>% filter(ZAT_FIN %in% ZonasUrbanas$ZONA) 
+```
+
+```{r}
+SampleTripsPico <- tibble(ZatOrigin=c(0),
+                          ZatDestination=c(0),
+                          LongOrigin=c(0),
+                          LatOrigin=c(0),
+                          LongDestination=c(0),
+                          LatDestination=c(0))
+```
+
+```{r}
+for (i in 1:dim(ParesOD_PICO)[1]){
+  SSRef <- 15
+  SS <- 5000
+  SampleTripsOrigin <- st_sample(
+    ZonasUrbanas[which(ZonasUrbanas$ZONA==ParesOD_PICO$ZAT_INI[i]),],SS)
+  
+  SampleTripsDest <- st_sample(
+    ZonasUrbanas[which(ZonasUrbanas$ZONA==ParesOD_PICO$ZAT_FIN[i]),],SS)
+  
+  Temp <- data.frame(ZatOrigin=rep(ParesOD_PICO$ZAT_INI[i],SSRef),
+                     ZatDestination=rep(ParesOD_PICO$ZAT_FIN[i],SSRef),
+                     LongOrigin=st_coordinates(SampleTripsOrigin)[1:SSRef,1],
+                     LatOrigin=st_coordinates(SampleTripsOrigin)[1:SSRef,2],
+                     LongDestination=st_coordinates(SampleTripsDest)[1:SSRef,1],
+                     LatDestination=st_coordinates(SampleTripsDest)[1:SSRef,2])
+
+  SampleTripsPico <- rbind(SampleTripsPico,Temp)  
+  print(i)
+}
+
+```
+
+
+##Viajes Hora Valle
+
+```{r}
+ViajesValle <- Viajes %>% 
+  filter(!Hour %in% c(seq(6,8,0.5), 11.5, 12, 12.5, 13.5, 14, 17.5, 18, 18.30))
+
+ParesOD_VALLE <- ViajesValle %>% group_by(ZAT_INI, ZAT_FIN) %>% 
+  summarise(ViajesEncuesta = n(), ViajesEsimados = sum(FactorExpansion, na.rm = TRUE))
+
+ParesOD_VALLE %<>% filter(ZAT_INI %in% ZonasUrbanas$ZONA) 
+ParesOD_VALLE %<>% filter(ZAT_FIN %in% ZonasUrbanas$ZONA) 
+```
+
+```{r}
+SampleTripsValle <- tibble(ZatOrigin=c(0),
                           ZatDestination=(0),
                           LongOrigin=c(0),
                           LatOrigin=c(0),
@@ -80,33 +149,38 @@ SampleTrips <- data.frame(ZatOrigin=c(0),
 ```
 
 ```{r}
-for (i in 1:dim(NewPairs)[1]){
-  SSRef <- 20
+for (i in 1:dim(ParesOD_VALLE)[1]){
+  SSRef <- 15
   SS <- 5000
   SampleTripsOrigin <- st_sample(
-    Zones[which(Zones$Zona_Num_N==NewPairs$ZAT_ORIGEN[i]),],SS)
+    ZonasUrbanas[which(ZonasUrbanas$ZONA==ParesOD_VALLE$ZAT_INI[i]),],SS)
   
   SampleTripsDest <- st_sample(
-    Zones[which(Zones$Zona_Num_N==NewPairs$ZAT_DESTINO[i]),],SS)
+    ZonasUrbanas[which(ZonasUrbanas$ZONA==ParesOD_VALLE$ZAT_FIN[i]),],SS)
   
-  Temp <- data.frame(ZatOrigin=rep(NewPairs$ZAT_ORIGEN[i],SSRef),
-                     ZatDestination=rep(NewPairs$ZAT_DESTINO[i],SSRef),
+  
+  
+  Temp <- data.frame(ZatOrigin=rep(ParesOD_VALLE$ZAT_INI[i],SSRef),
+                     ZatDestination=rep(ParesOD_VALLE$ZAT_FIN[i],SSRef),
                      LongOrigin=st_coordinates(SampleTripsOrigin)[1:SSRef,1],
                      LatOrigin=st_coordinates(SampleTripsOrigin)[1:SSRef,2],
                      LongDestination=st_coordinates(SampleTripsDest)[1:SSRef,1],
                      LatDestination=st_coordinates(SampleTripsDest)[1:SSRef,2])
 
-  SampleTrips <- rbind(SampleTrips,Temp)  
+  SampleTripsValle <- rbind(SampleTripsValle,Temp)  
+  print(i)
 }
 
 ```
 
+##Guardar Datos
 
 ```{r}
-# SampleTrips <- SampleTrips[c(-1),]
+# SampleTripsPico <- SampleTripsPico[c(-1),]
+# SampleTripsValle <- SampleTripsPico[c(-1),]
 
-setwd("UberData/SamplingData")
-getwd()
-# setwd("~/Dropbox/IDB Uber Bog/UberData_2019NEW/UberSamplingData")
-# write.table(SampleTrips,"SampleTripsUberPeak_2019NEW.csv",sep = ";",row.names = FALSE)
+# setwd("UberData/SamplingData")
+
+# write.table(SampleTripsPico,"ViajesMuestra_PICO.csv",sep = ";",row.names = FALSE)
+# write.table(SampleTripsValle,"ViajesMuestra_VALLE.csv",sep = ";",row.names = FALSE)
 ```
